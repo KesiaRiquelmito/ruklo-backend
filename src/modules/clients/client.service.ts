@@ -132,4 +132,7 @@ export class ClientService implements OnModuleInit {
       }
     }
   }
+  async getAllClientsBenefits(): Promise<Benefit[]> {
+    return this.benefitRepository.find({ order: { awardedAt: 'ASC' } });
+  }
 }

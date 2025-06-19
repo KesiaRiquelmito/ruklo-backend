@@ -14,10 +14,10 @@ export class Benefit {
   @PrimaryGeneratedColumn()
   id: string;
 
-  @ManyToOne(() => Client, (client) => client.benefits)
+  @ManyToOne(() => Client, (client) => client.benefits, { eager: true })
   client: Client;
 
-  @ManyToOne(() => Store, (store) => store.benefits)
+  @ManyToOne(() => Store, (store) => store.benefits, { eager: true })
   store: Store;
 
   @Column()
