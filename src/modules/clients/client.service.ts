@@ -7,6 +7,11 @@ import { Client } from './entities/client.entity';
 import { Repository } from 'typeorm';
 import { Store } from './entities/store.entity';
 import { Benefit } from './entities/benefit.entity';
+import { startOfISOWeek, formatISO, addWeeks } from 'date-fns';
+import {
+  ClientHistory,
+  WeeklyRechargeStat,
+} from '../interfaces/IClientHistory';
 
 @Injectable()
 export class ClientService implements OnModuleInit {
@@ -132,7 +137,72 @@ export class ClientService implements OnModuleInit {
       }
     }
   }
+
   async getAllClientsBenefits(): Promise<Benefit[]> {
     return this.benefitRepository.find({ order: { awardedAt: 'ASC' } });
+  }
+
+  async getClientTransactionHistory(clientId: string): Promise<ClientHistory> {
+    // filter events by client
+    const clientEvents = this.events.filter((e) => e.client_id === clientId);
+    if (clientEvents.length === 0) {
+      throw new Error(`Client ${clientId} not found in events file`);
+    }
+
+    const visits = clientEvents.filter((e) => e.type === 'visit');
+    const recharges = clientEvents.filter((e) => e.type === 'recharge');
+
+    //Group recharges by ISO week
+    const stats: Record<string, { sum: number; count: number }> = {};
+    for (const r of recharges) {
+      const weekKey = formatISO(startOfISOWeek(r.timestamp), {
+        representation: 'date',
+      });
+      if (!stats[weekKey]) stats[weekKey] = { sum: 0, count: 0 };
+      stats[weekKey].sum += r.amount ?? 0;
+      stats[weekKey].count += 1;
+    }
+
+    // build range of continuous weeks
+    const sortedEvents = clientEvents.sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+    );
+    let cursor = startOfISOWeek(sortedEvents[0].timestamp);
+    const last = startOfISOWeek(
+      sortedEvents[sortedEvents.length - 1].timestamp,
+    );
+
+    const rechargeWeeklyAverage: WeeklyRechargeStat[] = [];
+    while (cursor <= last) {
+      const key = formatISO(cursor, { representation: 'date' });
+      const info = stats[key];
+      rechargeWeeklyAverage.push({
+        weekStart: key,
+        averageAmount: info ? info.sum / info.count : 0,
+      });
+      cursor = addWeeks(cursor, 1);
+    }
+    return {
+      clientId,
+      transactions: {
+        visit: visits.map((v) => ({
+          storeId: v.store_id,
+          timestamp: v.timestamp.toISOString(),
+        })),
+        recharge: recharges.map((r) => ({
+          storeId: r.store_id,
+          amount: r.amount!,
+          timestamp: r.timestamp.toISOString(),
+        })),
+      },
+      rechargeWeeklyAverage,
+    };
+  }
+
+  async getAllClientHistories(): Promise<ClientHistory[]> {
+    const clientIds = Array.from(new Set(this.events.map((e) => e.client_id)));
+    return Promise.all(
+      clientIds.map((id) => this.getClientTransactionHistory(id)),
+    );
   }
 }
