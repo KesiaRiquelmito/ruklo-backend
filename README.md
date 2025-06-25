@@ -56,9 +56,9 @@ Includes schemas and endpoints for:
 ```bash
 $ yarn install
 $ cp .env.example .env
-# Then edit .env with your PostgreSQL config
-
 ```
+Then edit .env with your PostgreSQL config
+
 
 ## Example .env configuration
 ```env
