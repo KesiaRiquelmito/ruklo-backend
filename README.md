@@ -55,7 +55,30 @@ Includes schemas and endpoints for:
 
 ```bash
 $ yarn install
+$ cp .env.example .env
+# Then edit .env with your PostgreSQL config
+
 ```
+
+## Example .env configuration
+```env
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=yourpassword
+DATABASE_NAME=ruklo_db
+```
+
+
+## Create the Database
+Before starting the server, make sure the database exists:
+
+```bash
+$ createdb -U postgres ruklo_db
+```
+Replace postgres with your actual DB user if different.
+
+
 
 ## Compile and run the project
 
