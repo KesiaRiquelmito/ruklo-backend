@@ -14,6 +14,12 @@ import {
 } from '../interfaces/IClientHistory';
 
 @Injectable()
+/**
+ * Service responsible for processing client events, awarding benefits,
+ * and exposing transaction history logic.
+ *
+ * On initialization, loads events from JSON and processes client benefits.
+ */
 export class ClientService implements OnModuleInit {
   constructor(
     @InjectRepository(Client)
@@ -138,10 +144,26 @@ export class ClientService implements OnModuleInit {
     }
   }
 
+  /**
+   * Retrieves all client benefits stored in the database, ordered by the date
+   * they were awarded (ascending).
+   *
+   * Each benefit includes the associated client and store thanks to eager loading.
+   *
+   * @returns An array of `Benefit` entities, ordered by `awardedAt` ascending
+   */
   async getAllClientsBenefits(): Promise<Benefit[]> {
     return this.benefitRepository.find({ order: { awardedAt: 'ASC' } });
   }
 
+  /**
+   * Returns the full transaction history for a client, including:
+   * - Visit and recharge events
+   * - Weekly recharge averages (0 if no recharges that week)
+   *
+   * @param clientId - ID of the client
+   * @returns ClientHistory object with events and weekly stats
+   */
   async getClientTransactionHistory(clientId: string): Promise<ClientHistory> {
     // filter events by client
     const clientEvents = this.events.filter((e) => e.client_id === clientId);
@@ -199,6 +221,12 @@ export class ClientService implements OnModuleInit {
     };
   }
 
+  /**
+   * Returns the transaction history for all clients present in the events dataset.
+   * This is equivalent to calling `getClientTransactionHistory()` for each distinct client.
+   *
+   * @returns An array of `ClientHistory` objects, one per client
+   */
   async getAllClientHistories(): Promise<ClientHistory[]> {
     const clientIds = Array.from(new Set(this.events.map((e) => e.client_id)));
     return Promise.all(
