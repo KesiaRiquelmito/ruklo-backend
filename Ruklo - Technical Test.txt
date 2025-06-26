@@ -1,0 +1,60 @@
+﻿Ruklo - Technical Test
+Me decidí por usar NestJs por ser modular, escalable, además tengo experiencia trabajando con NestJs y me resulta cómodo para desarrollar aplicaciones backend bien estructuradas y mantenibles.
+Primero creé un módulo clients donde añadiré los servicios asociados a los clientes
+Parsear el json para acceder a él correctamente
+
+
+parte 1
+Agrupar los eventos por cliente:
+Para cada cliente
+- ordenar los eventos por fecha
+- recorrer uno por uno
+- llevar la cuenta de cuantas visitas seguidas van
+- si hay un 'visit' suma 1
+- si ve un recharge, reinicia a 0
+- si llega a 5 visitas el cliente califica para el beneficio
+
+
+Entonces primero agrupo eventos por cliente creando un array vacío
+Después analizo cada cliente ordenando los eventos por fecha
+Recorro cada cliente, tomo sus eventos y recorro cada evento
+Inicializo el objeto para poder añadirle el valor con el push
+
+
+haciendo un for que recorra eventos ordenados por fecha y agrupado por cliente con validaciones de la misma tienda visitada no se almacenan distintas tiendas paralelamente, sino que solo va sumando al contador de la última tienda visitada, por lo que no sirve para calificar para el beneficio ya que se reinicia a 0 el contador al cambiar de tienda. se pierden las secuencias separadas por tienda.
+1. visit → store1 → count = 1
+2. visit → store1 → count = 2
+3. visit → store2 → cambia tienda → count = 1
+4. visit → store1 → cambia tienda → count = 1 (¡se perdió el avance anterior!)
+5. visit → store1 → count = 2
+
+
+Necesito un contador por tienda, donde la key sea 'store_id' y value sea el 'count' con la validación si es del tipo 'visit'.
+Ahora analizo y cuento las visitas por tienda, reinicio el contador por tienda, así se mantienen las secuencias separadas
+Creé un iterador que recorra todos los eventos del cliente actual ordenados cronológicamente y ahí parten las validaciones
+Verifica si el evento representa una visita a una tienda, si es visita busca el contador actual para la tienda seleccionada, si no existe aún parte en 0, le suma 1 y lo guarda
+Cuando el contador para la tienda seleccionada llegue a 5, significa que el cliente visitó la tienda 5 veces seguidas sin recargar entre medio => califica para el beneficio
+Si entre medio hay una recarga se reinicia el contador para la tienda.
+
+
+Creé la base de datos por terminal, me decidí por PostgreSQL para poder almacenar los beneficios de forma persistente y confiable, evita reprocesar el JSON completo en cada ejecución o consulta
+Instalé dependencias de typeorm
+Configurar la conexión de la db en appmodule
+Decidí utilizar ORM para hacer el código mas legible y mantenible, puedo utilizar métodos predefinidos para hacer consultas típicas a la bd.
+Registré las entidades en el modulo Client: Client, Store, Benefit
+Para guardar los beneficio en la base de datos debo asegurarme si es que existe el client y el store, además si existe el beneficio, si no existe => lo guardo. Así evito que se duplique el beneficio para el mismo cliente y tienda
+Añadí las columnas createdAt y updatedAt a Benefit para saber cuando e insertó el registro y cuando fué modificado por ultima vez, updateAt es util para permitir modificar beneficios. Además de awardedAt para representar la fecha en la que el cliente calificó para el beneficio (la última/quinta visita), que es distinto a la fecha que se procesaron los eventos.
+Decidí utilizar eager en las entitys para las opciones de relaciones entre las tablas, así al hacer el find() traerá la data de las relaciones completa, como el clientId y storeId.
+Añadí un endpoint en el controller para traer los beneficios ordenados por fecha ascendente según el awardedAt donde se muestran beneficios, a que cliente y tienda correspnden.
+
+
+Para el segundo problema hay que agrupar los eventos por cliente, mostrar el historial de visit y recharge, además de agrupar por semana el promedio de recargas, si es que no hay recargas esa semana es 0.
+Para este paso recorrí el historial por cliente ordenado por fecha y tipo de evento, se agruparon por semana ISO (startOfISOWeek) y se generó una lista continua de semanas desde la primera a la última.
+creé endpoint para mostrar el historial por id de cliente y el historial completo de todos los clientes, como es poca data no necesité añadir paginado pero con mas data si sería necesario para evitar sobrecarga.
+
+
+Añadí documentación con swagger para facilitar el uso de los endpoints 
+Las limitaciones que veo son:
+- el JSON si creciera mucho debería ser almacenado en una base de datos para rapidez de lectura y confiabilidad.
+- No hay paginado en las respuesta de los endpoints, esto porque es poca data hasta ahora, a momento de crecer es necesario añadir metadata.
+A futuro se podrían añadir nuevas validaciones de vencimiento de beneficio por ejemplo o una columna que muestre si el beneficio está vigente
