@@ -34,11 +34,11 @@ Includes schemas and endpoints for:
 
 ## Endpoints
 
-| Method | Route                          | Description                                      |
-|--------|--------------------------------|--------------------------------------------------|
-| GET    | `/clients/benefits`            | List all clients with granted benefits           |
-| GET    | `/clients/:id/history`         | Full transaction history for a specific client   |
-| GET    | `/clients/history/all`         | Transaction histories for all clients            |
+| Method | Route                          | Description                                      | Solves    |
+|--------|--------------------------------|--------------------------------------------------|-----------|
+| GET    | `/clients/benefits`            | List all clients with granted benefits           | Problem 1 |
+| GET    | `/clients/:id/history`         | Full transaction history for a specific client   | Problem 2 |
+| GET    | `/clients/history/all`         | Transaction histories for all clients            | Problem 2 |
 
 ---
 
@@ -71,6 +71,7 @@ DATABASE_NAME=ruklo_db
 
 
 ## Create the Database
+Make sure PostgreSQL is installed and running on your system before proceeding.
 Before starting the server, make sure the database exists:
 
 ```bash
